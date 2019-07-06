@@ -1,0 +1,11 @@
+[Unit]
+Description=EPICS caRepeater service
+After=multi-user.target
+
+[Service]
+User=oper
+ExecStart=/home/oper/epics/base/bin/linux-x86_64/caRepeater
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

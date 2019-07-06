@@ -1,0 +1,11 @@
+[Unit]
+Description=EPICS GW service start
+After=multi-user.target
+
+[Service]
+User=oper
+ExecStart=/home/oper/epics/run_gw/startgw
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
