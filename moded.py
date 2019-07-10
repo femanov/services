@@ -48,6 +48,7 @@ class ModeDeamon:
         self.mode_ser.loadMarked.connect(self.loadMarked)
         self.mode_ser.markMode.connect(self.markMode)
         self.mode_ser.walkerLoad.connect(self.walkerLoad)
+        self.mode_ser.setZeros.connect(print)
 
         # create cache for "logical system" to "chan_name"
         self.sys_cache = SysCache(db=self.db)
