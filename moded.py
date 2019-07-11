@@ -48,7 +48,7 @@ class ModeDeamon:
         self.mode_ser.loadMarked.connect(self.loadMarked)
         self.mode_ser.markMode.connect(self.markMode)
         self.mode_ser.walkerLoad.connect(self.walkerLoad)
-        self.mode_ser.setZeros.connect(print)
+        self.mode_ser.setZeros.connect(self.apply_zeros)
 
         # create cache for "logical system" to "chan_name"
         self.sys_cache = SysCache(db=self.db)
@@ -94,6 +94,11 @@ class ModeDeamon:
                 self.mode_ser.loaded('nothing requested to load')
                 return False
         return True
+
+    def apply_zeros(self, syslist, a_kinds):
+        namelist = self.sys_cache.cnames(syslist, a_kinds)
+        print(namelist)
+
 
     def applyMode(self, mode_data):
         # mode_data cols: protocol, chan_name, value
