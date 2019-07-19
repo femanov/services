@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 from math import fabs
 import numpy as np
 
@@ -17,30 +18,47 @@ from acc_db.db import AccConfig, ModesDB
 from acc_db.mode_cache import SysCache, ModeCache
 
 
+class EPICSChanAdapter:
+    def __init__(self, name):
+        self.chan = catools.camonitor(name, self.new_data, format=catools.FORMAT_TIME)
+
+        self.name, self.val, self.time, self.quant = name, 0, 0, 0
+
+    def new_data(self, value):
+        self.time = int(value.raw_stamp[0] * 1000000 + value.raw_stamp[1] / 1000)
+        self.val = float(value)
+
+    def is_available(self):
+        if self.time > 0:
+            return True
+        return False
+
+    def setValue(self, value):
+        res = catools.caput(self.name, value, throw=False)
+        return res
+
+
+class ChanFactory:
+    def create_chan(self, protocol, name):
+        if protocol == 'cx':
+            return cda.DChan(name)
+        if protocol == 'EPICS':
+            return EPICSChanAdapter(name)
+        return None
+
+
 class ModeDeamon:
     def __init__(self):
         self.db = ModesDB()
 
         ans = self.db.mode_chans()
         self.db_chans = [list(c) for c in ans]
+        cf = ChanFactory()
 
-        self.cind = {}
-        self.avaliable_cind = {}
-
-        # db cols: protocol, name, fullchan_id
-        for x in self.db_chans:
-            chan = None
-            if x[0] == 'cx':
-                chan = cda.DChan(str(x[1]))#, on_update=True)
-                chan.valueMeasured.connect(self.cx_new_data)
-                chan.resolve.connect(self.cx_resolve)
-            if x[0] == 'EPICS':
-                chan = catools.camonitor(str(x[1]), self.epicsNewData, format=catools.FORMAT_TIME)
-            x += [0, 0.0, 0]  # cols: protocol, name, fullchan_id, utime, value, available
-            if x[1] in self.cind:
-                print("error: chan doubled %s" % x[1], x, self.cind[x[1]])
-                sys.exit(-1)
-            self.cind[x[1]] = [chan, x]  # copy link to hash-table for faster look-up
+        # dict for faster name-based lookup
+        self.cind = {x[1]: cf.create_chan(x[0], x[1]) for x in self.db_chans}
+        # save ids
+        self.c_ids = {x[1]: x[2] for x in self.db_chans}
 
         self.mode_ser = ModesServer()  # message server for accelerator mode control
         self.mode_ser.load.connect(self.loadMode)
@@ -48,7 +66,7 @@ class ModeDeamon:
         self.mode_ser.loadMarked.connect(self.loadMarked)
         self.mode_ser.markMode.connect(self.markMode)
         self.mode_ser.walkerLoad.connect(self.walkerLoad)
-        self.mode_ser.setZeros.connect(self.apply_zeros)
+        self.mode_ser.setZeros.connect(self.load_zeros)
 
         # create cache for "logical system" to "chan_name"
         self.sys_cache = SysCache(db=self.db)
@@ -63,29 +81,15 @@ class ModeDeamon:
         for k in self.walkers:
             self.walkers[k].done.connect(self.mode_ser.walkerDone)
 
-        self.dump_count = 0
-
-    def cx_resolve(self, chan):
-        row = self.cind[chan.name][1]
-        if chan.rslv_stat == cda.RSLVSTAT_NOTFOUND or chan.rslv_stat == cda.RSLVSTAT_SEARCHING:
-            if chan.name in self.avaliable_cind:
-                del self.avaliable_cind[chan.name]
-                row[-1] = 0
-        elif chan.rslv_stat == cda.RSLVSTAT_FOUND:
-            self.avaliable_cind[chan.name] = self.cind[chan.name]
-            row[-1] = 1
-
-    def cx_new_data(self, chan):
-        row = self.cind[chan.name][1]
-        row[-3], row[-2] = chan.time, chan.val
-
-    def epicsNewData(self, value):
-        row = self.cind[value.name][1]
-        time = int(value.raw_stamp[0] * 1000000 + value.raw_stamp[1] / 1000)
-        row[-3], row[-2], row[-1] = time, float(value), 2
-
     def saveMode(self, author, comment):
-        mode_id = self.db.save_mode(str2u(author), str2u(comment), self.db_chans)
+        t1 = time.time()
+        cids = self.c_ids
+        cind = self.cind
+        data = [[cids[k], cind[k].time, cind[k].val, cind[k].is_available()] for k in cids]
+        t2 = time.time()
+        mode_id = self.db.save_mode(str2u(author), str2u(comment), data)
+        t3 = time.time()
+        print(t2-t1, t3-t2)
         self.mode_ser.saved(mode_id)
 
     def check_syslist(self, syslist):
@@ -95,55 +99,31 @@ class ModeDeamon:
                 return False
         return True
 
-    def apply_zeros(self, syslist, a_kinds):
-        namelist = self.sys_cache.cnames(syslist, a_kinds)
-        print(namelist)
-
-
     def applyMode(self, mode_data):
-        # mode_data cols: protocol, chan_name, value
-        loaded_count, nochange_count, na_count, unknown_count = 0, 0, 0, 0
+        # mode_data cols: chan_name, value
+        loaded_count, nochange_count, na_count = 0, 0, 0
         epics_chans, epics_values = [], []
 
-        # dump_file = open("/var/tmp/dump" + str(self.dump_count) + ".txt", "w")
-        # for x in mode_data:
-        #     dump_file.write(str(x) + "\n")
-        # dump_file.close()
-        # self.dump_count += 1
-
         for row in mode_data:
-            c_row = self.avaliable_cind.get(row[1], None)
-            if c_row is None:
+            c_name, c_val = row[0], row[1]
+            chan = self.cind.get(c_name, None)
+            if chan is None:
                 na_count += 1
-                print('unavaliable: ', row[1])
+                print('unavaliable: ', c_name)
                 continue
-            cdata = c_row[1]
-            if row[-1] == cdata[-2]:
+            # warning !!! it's not always correct
+            if c_val == chan.val:
                 nochange_count += 1
                 continue
-            if row[0] == 'EPICS':
-                epics_chans.append(str(row[1]))
-                epics_values.append(row[2])
-                loaded_count += 1
-                continue
-            if row[0] == 'cx':
-                chan = self.cind[cdata[1]][0]
-                if fabs(chan.val - row[2]) < 2.0 * chan.quant:
-                    nochange_count += 1
-                    continue
-                else:
-                    chan.setValue(row[2])
-                    loaded_count += 1
-                    continue
-            unknown_count += 1
-        try:
-            e_ok = catools.caput(epics_chans, epics_values)
-        except:
-            print('some epics pv problems', e_ok)
-            pass
-        msg = 'loaded %d, nochange %d, unavail %d, unknown %d' % \
-              (loaded_count, nochange_count, na_count, unknown_count)
+            chan.setValue(c_val)
+            loaded_count += 1
+        msg = 'loaded %d, nochange %d, unavailiable %d' % (loaded_count, nochange_count, na_count)
         return msg
+
+    def load_zeros(self, syslist, a_kinds):
+        namelist = self.sys_cache.cnames(syslist, a_kinds)
+        #zero_mode = [for x in ]
+        print(namelist)
 
     def loadMode(self, mode_id, syslist, types):
         if not self.check_syslist(syslist) or not types:
