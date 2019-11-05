@@ -81,7 +81,7 @@ class ModeDeamon:
         cind = self.cind
         data2json = {'columns': ['fullchan_id', 'value', 'time', 'available'],
                      'doc_type': '1.0',
-                     'data': {k: [cind[k].val, cind[k].time, cind[k].is_available()] for k in cind}}
+                     'data': {str(k): [cind[k].val, cind[k].time, cind[k].is_available()] for k in cind}}
         data_json = json.dumps(data2json, ignore_nan=True)
         mode_id = self.db.save_mode(author, comment, data_json)
         self.mode_ser.saved(mode_id)
