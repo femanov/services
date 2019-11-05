@@ -70,6 +70,7 @@ class ModeDeamon:
         self.db.execute("SELECT name from modemark")
         marks = self.db.cur.fetchall()
         self.marks = [x[0] for x in marks]
+        print(self.marks)
         self.mode_caches = {x: ModeCache(x, db=self.db, sys_cache=self.sys_cache) for x in self.marks}
 
         # walkers for chain-load infrastructure
