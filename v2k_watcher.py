@@ -16,7 +16,7 @@ class V2KWatcher:
 
         self.c_bep_is_busy = cda.IChan('bep.is_busy', on_update=True)
         self.c_bep_offline = cda.IChan('bep.offline', on_update=True)
-        self.c_v2k_particles = cda.StrChan('bep.particles', on_update=True)
+        self.c_v2k_particles = cda.StrChan('bep.particles', max_nelems=50, on_update=True)
 
 
         self.c_v2k_regime.valueMeasured.connect(self.requested_particles_check)
@@ -30,7 +30,7 @@ class V2KWatcher:
         if self.c_v2k_regime.val in {'1', '2'}:
             particles = 'electrons'
         if self.c_v2k_particles.val != particles:
-            print("particles=",particles)
+            print("particles=", particles)
             self.c_v2k_particles.setValue(particles)
 
     def bep_busy_check(self, chan):
