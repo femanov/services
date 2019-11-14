@@ -30,6 +30,7 @@ class V2KWatcher:
         if self.c_v2k_regime.val in {'1', '2'}:
             particles = 'electrons'
         if self.c_v2k_particles.val != particles:
+            print("particles=",particles)
             self.c_v2k_particles.setValue(particles)
 
     def bep_busy_check(self, chan):
