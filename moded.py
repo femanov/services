@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-import sys
-import time
-from math import fabs
 import numpy as np
 import simplejson as json
 
@@ -170,9 +167,7 @@ class ModeDeamon:
 class ModeService(CothreadQtService):
     def main(self):
         global QtCore, catools, cothread, signal
-        from aQt import QtCore
-        import cothread
-        from cothread import catools
+        from cxwidgets.aQt import QtCore
 
         signal = QtCore.pyqtSignal
         self.m = ModeDeamon()
