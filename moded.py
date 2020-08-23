@@ -14,23 +14,23 @@ from acc_db.db import AccConfig, ModesDB
 from acc_db.mode_cache import SysCache, ModeCache
 
 
-class EPICSChanAdapter:
-    def __init__(self, name, **kwargs):
-        self.chan = catools.camonitor(name, self.new_data, format=catools.FORMAT_TIME)
-        self.name, self.val, self.time, self.quant = name, 0, 0, 0
-
-    def new_data(self, value):
-        self.time = int(value.raw_stamp[0] * 1000000 + value.raw_stamp[1] / 1000)
-        self.val = float(value)
-
-    def is_available(self):
-        if self.time > 0:
-            return True
-        return False
-
-    def setValue(self, value):
-        res = catools.caput(self.name, value, throw=False)
-        return res
+# class EPICSChanAdapter:
+#     def __init__(self, name, **kwargs):
+#         self.chan = catools.camonitor(name, self.new_data, format=catools.FORMAT_TIME)
+#         self.name, self.val, self.time, self.quant = name, 0, 0, 0
+#
+#     def new_data(self, value):
+#         self.time = int(value.raw_stamp[0] * 1000000 + value.raw_stamp[1] / 1000)
+#         self.val = float(value)
+#
+#     def is_available(self):
+#         if self.time > 0:
+#             return True
+#         return False
+#
+#     def setValue(self, value):
+#         res = catools.caput(self.name, value, throw=False)
+#         return res
 
 
 class ChanFactory:
@@ -38,7 +38,8 @@ class ChanFactory:
         if protocol == 'cx':
             return cda.DChan(name, **kwargs)
         if protocol == 'EPICS':
-            return EPICSChanAdapter(name, **kwargs)
+            #return EPICSChanAdapter(name, **kwargs)
+            return cda.DChan()
         return None
 
 
