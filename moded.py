@@ -2,9 +2,8 @@
 import numpy as np
 import simplejson as json
 
-from aux.service_daemon import CothreadQtService
-
-import pycx4.qcda as cda
+import pycx4.pycda as cda
+from aux.service_daemon import CXService
 
 from acc_ctl.mode_ser import ModesServer
 from acc_ctl.k500modes import remag_devs, remag_srv
@@ -165,39 +164,14 @@ class ModeDeamon:
         dump_file.close()
 
 
-class ModeService(CothreadQtService):
+class ModeService(CXService):
     def main(self):
-        global QtCore, catools, cothread, signal
-        from cxwidgets.aQt import QtCore
-
-        signal = QtCore.pyqtSignal
         self.m = ModeDeamon()
 
     def clean_proc(self):
         self.m.dump_state()
 
 
-cfg_db = AccConfig()
-cfg_db.execute("SELECT protocol FROM protocols_in_use()")
-ans = cfg_db.cur.fetchall()
-protocols = [p[0] for p in ans]
-print(protocols)
-if len(protocols) == 1:
-    print("Single protocol is in use. Will use native main loop")
-    single_protocol = protocols[0]
-else:
-    print("There are few protocols. Let's use some common main loop")
-
 
 moded = ModeService("moded")
 
-# from aQt import QtCore
-# import cothread
-# from cothread import catools
-#
-# app = QtCore.QCoreApplication(sys.argv)
-# cothread.iqt()
-#
-# m = ModeDeamon()
-#
-# cothread.WaitForQuit()
