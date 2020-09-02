@@ -9,27 +9,8 @@ from acc_ctl.mode_ser import ModesServer
 from acc_ctl.k500modes import remag_devs, remag_srv
 from acc_ctl.magwalker import MagWalker
 
-from acc_db.db import AccConfig, ModesDB
+from acc_db.db import ModesDB
 from acc_db.mode_cache import SysCache, ModeCache
-
-
-# class EPICSChanAdapter:
-#     def __init__(self, name, **kwargs):
-#         self.chan = catools.camonitor(name, self.new_data, format=catools.FORMAT_TIME)
-#         self.name, self.val, self.time, self.quant = name, 0, 0, 0
-#
-#     def new_data(self, value):
-#         self.time = int(value.raw_stamp[0] * 1000000 + value.raw_stamp[1] / 1000)
-#         self.val = float(value)
-#
-#     def is_available(self):
-#         if self.time > 0:
-#             return True
-#         return False
-#
-#     def setValue(self, value):
-#         res = catools.caput(self.name, value, throw=False)
-#         return res
 
 
 class ChanFactory:
@@ -37,12 +18,11 @@ class ChanFactory:
         if protocol == 'cx':
             return cda.DChan(name, **kwargs)
         if protocol == 'EPICS':
-            #return EPICSChanAdapter(name, **kwargs)
             return cda.DChan()
         return None
 
 
-class ModeDeamon:
+class ModeDaemon:
     def __init__(self):
         self.db = ModesDB()
         ans = self.db.mode_chans()
@@ -93,7 +73,6 @@ class ModeDeamon:
     def applyMode(self, mode_data):
         # mode_data: {id:[value, ...]}
         loaded_count, nochange_count, na_count = 0, 0, 0
-        #print(mode_data)
         for c_id in mode_data:
             chan = self.cind.get(c_id, None)
             if chan is None:
@@ -110,7 +89,6 @@ class ModeDeamon:
         return msg
 
     def load_zeros(self, syslist, a_kinds):
-        print('load_zero requested')
         cids = self.sys_cache.cids(syslist, a_kinds)
         zero_mode = {x: [0.0] for x in cids}
         msg = self.applyMode(zero_mode)
@@ -154,7 +132,6 @@ class ModeDeamon:
                 if coefs[key] is not None:
                     for ind in range(len(vs)):
                         vs[ind] *= coefs[key][ind]
-            #print(key, vs)
             self.walkers[key].run_list(np.array(vs))
 
     def dump_state(self):
@@ -166,7 +143,7 @@ class ModeDeamon:
 
 class ModeService(CXService):
     def main(self):
-        self.m = ModeDeamon()
+        self.m = ModeDaemon()
 
     def clean_proc(self):
         self.m.dump_state()
