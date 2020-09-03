@@ -20,6 +20,6 @@ fcntl(f, F_SETFL, fcntl(f, F_GETFL) | os.O_NONBLOCK)
 
 file_ev = cda.FdEvent(f)
 
-file_ev.ready.conneect(fd_ready)
+file_ev.ready.connect(fd_ready)
 
 cda.main_loop()
