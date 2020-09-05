@@ -11,12 +11,14 @@ device_file = device_folder + '/w1_slave'
 
 
 def fd_ready(ev):
+    ev.file.seek(0)
     lines = ev.file.readlines()
     print(time.time())
     print(lines)
 
-f = open(device_file, 'r')
-fcntl(f, F_SETFL, fcntl(f, F_GETFL) | os.O_NONBLOCK)
+f = open(device_file, 'r')  # open file
+os.set_blocking(f.fileno(), False)  # make it nonblocking
+#fcntl(f, F_SETFL, fcntl(f, F_GETFL) | os.O_NONBLOCK)  # make it nonblocking
 
 file_ev = cda.FdEvent(f)
 
