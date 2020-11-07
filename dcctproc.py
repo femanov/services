@@ -5,28 +5,29 @@ import scipy as sp
 from aux.service_daemon import CXService
 from settings.cx import ctl_server
 
-dname = ctl_server + '.dcct.'
-outdev = "cxout.inp.nsk.su:1.ringcur_users."
 
-class dcct_proc:
+class DCCTproc:
     def __init__(self):
+        dname = ctl_server + '.dcct.'
+        outdev = "cxout.inp.nsk.su:1.ringcur_users."
 
         # voltage measurement channel
-        self.dcctv_chan = cda.DChan("canhw:21.ring_current")
+        self.dcctv_chan = cda.DChan("canhw:21.ring_current", on_update=True)
 
         # input chans
-        self.u2i_chan = cda.DChan(dname + 'u2i')
-        self.adczero_chan = cda.DChan(dname + 'ADCzero')
-        self.storage_fitl_chan = cda.IChan(dname + 'storage_fitlength')
-        self.life_fitl_chan = cda.IChan(dname + 'life_fitlength')
+        self.u2i_chan = cda.DChan(dname + 'u2i', on_update=True)
+        self.adczero_chan = cda.DChan(dname + 'ADCzero', on_update=True)
+        self.storage_fitl_chan = cda.IChan(dname + 'storage_fitlength', on_update=True)
+        self.life_fitl_chan = cda.IChan(dname + 'life_fitlength', on_update=True)
 
+        # output channels
         self.beamcur_chan = cda.DChan(dname + 'beamcurrent')
         self.storage_rate_chan = cda.DChan(dname + 'storagerate')
         self.lifetime_chan = cda.DChan(dname + 'lifetime')
 
+        # output for beam users
         self.beamcur_chan_out = cda.DChan(outdev + 'beamcurrent')
         self.storage_rate_chan_out = cda.DChan(outdev + 'storagerate')
-
 
         self.params = {
             'u2i':               20.51,
@@ -61,7 +62,7 @@ class dcct_proc:
         size = max(pars['storage_fitlength'], pars['life_fitlength'])
         if size == self.I.size:
             return
-        self.I.resize(size, refcheck=False)
+        self.I.resize(size) #to test for refcheck
         self.t.resize(size, refcheck=False)
         self.Is = self.I
         self.ts = self.t
@@ -72,10 +73,8 @@ class dcct_proc:
         self.beamcur_chan.setValue(beamcur)
         self.beamcur_chan_out.setValue(beamcur)
 
-
         if self.I.size < 2:
             return
-
         self.Is = np.roll(self.Is, -1)
         self.Is[-1] = beamcur
         self.ts = np.roll(self.ts, -1)
@@ -90,7 +89,7 @@ class dcct_proc:
 
 class DCCTService(CXService):
     def main(self):
-        self.DCCTm = dcct_proc()
+        self.dcct = DCCTproc()
 
 
 s = DCCTService('dcct_proc')
