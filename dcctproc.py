@@ -62,8 +62,10 @@ class DCCTproc:
         size = max(pars['storage_fitlength'], pars['life_fitlength'])
         if size == self.I.size:
             return
-        self.I.resize(size) #to test for refcheck
-        self.t.resize(size, refcheck=False)
+        self.Is = None
+        self.ts = None
+        self.I.resize(size)
+        self.t.resize(size)
         self.Is = self.I
         self.ts = self.t
 
