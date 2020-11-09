@@ -44,8 +44,8 @@ class DCCTproc:
         self.dcctv_chan.valueMeasured.connect(self.dcctv_measured)
 
         # data owner arrays
-        self.I = np.zeros(self.params['life_fitlength'])
-        self.t = np.zeros(self.params['life_fitlength'])
+        self.I = np.zeros(10)
+        self.t = np.zeros(10)
         # copy arrays for shifted views
         self.Is = self.I
         self.ts = self.t
