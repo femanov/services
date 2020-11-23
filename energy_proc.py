@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pycx4.pycda as cda
 import numpy as np
-from aux.service_daemon import CXService
+from cservice import CXService
 
 khi = np.array([
     [9.457586127393008e-19, -2.996013976377047e-14, 3.403071228816144e-10, -1.580203855597708e-06, 6.200608486053660e-02, -1.282214443463090e-01],

@@ -3,7 +3,7 @@ import numpy as np
 import simplejson as json
 
 import pycx4.pycda as cda
-from aux.service_daemon import CXService
+from cservice import CXService
 
 from acc_ctl.mode_ser import ModesServer
 from acc_ctl.k500modes import remag_devs, remag_srv

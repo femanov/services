@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import pycx4.pycda as cda
-from aux.service_daemon import CXService
+from cservice import CXService
 
 
 class PassChanTest(CXService):

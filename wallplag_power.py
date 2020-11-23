@@ -8,7 +8,7 @@ import pycx4.q5cda as cda
 from settings.cx import pwa1_server
 import datetime
 import time
-from acc_ctl.service_daemon import Service
+from cservice import Service
 
 
 

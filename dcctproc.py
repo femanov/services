@@ -2,7 +2,7 @@
 import pycx4.pycda as cda
 import numpy as np
 import scipy as sp
-from aux.service_daemon import CXService
+from cservice import CXService
 from settings.cx import ctl_server
 
 
