@@ -13,11 +13,9 @@ class V2KWatcher:
         self.c_v2k_probros = cda.StrChan(v2k_cas + '.BEP.RF.Probros', on_update=True)
         self.c_v2k_auto_state = cda.StrChan(v2k_cas + '.BEP.Injection.State', on_opdate=True)
 
-
         self.c_bep_is_busy = cda.IChan('bep.is_busy', on_update=True)
         self.c_bep_offline = cda.IChan('bep.offline', on_update=True)
         self.c_v2k_particles = cda.StrChan('bep.particles', max_nelems=50, on_update=True)
-
 
         self.c_v2k_regime.valueMeasured.connect(self.requested_particles_check)
         self.c_bep_state.valueMeasured.connect(self.bep_busy_check)

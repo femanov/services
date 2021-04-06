@@ -9,7 +9,6 @@ from settings.cx import ctl_server
 class DCCTproc:
     def __init__(self):
         dname = ctl_server + '.dcct.'
-        outdev = "cxout.inp.nsk.su:1.ringcur_users."
 
         # voltage measurement channel
         self.dcctv_chan = cda.DChan("canhw:21.ring_current", on_update=True)
@@ -24,10 +23,6 @@ class DCCTproc:
         self.beamcur_chan = cda.DChan(dname + 'beamcurrent')
         self.storage_rate_chan = cda.DChan(dname + 'storagerate')
         self.lifetime_chan = cda.DChan(dname + 'lifetime')
-
-        # output for beam users
-        self.beamcur_chan_out = cda.DChan(outdev + 'beamcurrent')
-        self.storage_rate_chan_out = cda.DChan(outdev + 'storagerate')
 
         self.params = {
             'u2i':               20.51,
@@ -73,7 +68,6 @@ class DCCTproc:
         par = self.params
         beamcur = par['u2i'] * (chan.val - par['ADCzero'])
         self.beamcur_chan.setValue(beamcur)
-        self.beamcur_chan_out.setValue(beamcur)
 
         if self.I.size < 2:
             return
@@ -85,7 +79,6 @@ class DCCTproc:
         self.line = sp.polyfit(self.ts, self.Is, 1)
         self.storagerate = self.line[0]
         self.storage_rate_chan.setValue(self.storagerate)
-        self.storage_rate_chan_out.setValue(self.storagerate)
         # 2DO: put lifetime calc here
 
 
