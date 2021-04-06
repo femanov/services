@@ -11,6 +11,7 @@ class LogChan:
 
 class LogWriter:
     def __init__(self):
+        self.db =
 
         self.log_chans = {}
 
