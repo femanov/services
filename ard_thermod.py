@@ -52,9 +52,9 @@ class ArdThermo:
         self.file_ev.ready.connect(self.recive_pack)
         self.pack_count = 0
 
-        self.chans = {ln+1: {sn+1: cda.DChan("{srv}.wg{wgn}.temp{sensn}".format(srv=cx_srv, wgn=ln, sensn=sn+1))
+        self.chans = {ln+1: {sn+1: cda.DChan("{srv}.wg{wgn}.temp{sensn}".format(srv=cx_srv, wgn=ln+1, sensn=sn+1))
                       for sn in range(3)} for ln in range(4)}
-        self.chans[5] = {1: cda.DChan("{srv}.wg{wgn}.t".format(srv=cx_srv, wgn=4, sensn=1))}
+        self.chans[5] = {1: cda.DChan("{srv}.kls_hall.t".format(srv=cx_srv))}
         self.ids = {}
 
         self.timer = cda.Timer()
@@ -74,7 +74,7 @@ class ArdThermo:
             ids = struct.unpack("Q" * ndevs, data[3:3+8*ndevs])
             ms = struct.unpack("I", data[3+8*ndevs:3+8*ndevs+4])
             self.ids[nline] = ids
-            #print(ids, ms[0])
+            print(ids, ms[0])
 
         elif pack_type == 2:
             ts = struct.unpack("h" * ndevs, data[3:3+2*ndevs])
