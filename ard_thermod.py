@@ -68,7 +68,6 @@ class ArdThermo:
             print("bad checksum, dropping packet")
             return
         pack_type, nline, ndevs = struct.unpack('bbb', data[:3])
-        #print("pack_type=", pack_type, "line=", nline, " ndevs=", ndevs)
 
         if pack_type == 1:
             ids = struct.unpack("Q" * ndevs, data[3:3+8*ndevs])
@@ -80,12 +79,9 @@ class ArdThermo:
             ts = struct.unpack("h" * ndevs, data[3:3+2*ndevs])
             ms = struct.unpack("I", data[3+2*ndevs:3+2*ndevs+4])
             for i in range(len(ts)):
-                if ts[i] == -7040:
+                if ts[i] == -7040 or ts[i] == 10880:
                     continue
                 self.chans[nline][i+1].setValue(ts[i]/128)
-            # for x in ts:
-            #     print(x/128)
-            #print("conv_millis=", ms[0])
 
         self.pack_count += 1
         if self.pack_count > 5:
