@@ -1,10 +1,10 @@
 [Unit]
 Description=Accelerator mode control service
-after=network.target
+After=network.target
 
 [Service]
 User=oper
-type=simple
+Type=simple
 PIDFile=/var/tmp/moded.pid
 
 #WorkingDirectory=/var/tmp
@@ -14,7 +14,7 @@ Environment="EPICS_CA_AUTO_ADDR_LIST=NO"
 Environment="EPICS_CA_ADDR_LIST=moxa-2"
 Environment="PYTHONPATH=/home/oper/python/ic_modules:/home/oper/python"
 
-ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services/moded/moded.py -not-daemonize
+ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services/moded/moded.py
 
 Restart=always
 RestartSec=30
