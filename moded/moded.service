@@ -4,7 +4,7 @@ after=network.target
 
 [Service]
 User=oper
-type=forking
+type=simple
 PIDFile=/var/tmp/moded.pid
 
 #WorkingDirectory=/var/tmp
@@ -14,7 +14,7 @@ Environment="EPICS_CA_AUTO_ADDR_LIST=NO"
 Environment="EPICS_CA_ADDR_LIST=moxa-2"
 Environment="PYTHONPATH=/home/oper/python/ic_modules:/home/oper/python"
 
-ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services/moded/moded.py
+ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services/moded/moded.py -not-daemonize
 
 Restart=always
 RestartSec=30
