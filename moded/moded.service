@@ -1,0 +1,20 @@
+[Unit]
+Description=Accelerator mode control service
+after=network.target
+
+[Service]
+User=oper
+WorkingDirectory=/var/tmp
+
+Environment="LD_LIBRARY_PATH=/home/oper/epics/base/lib/linux-x86_64:/home/oper/4pult/cda/plugins"
+Environment="EPICS_CA_AUTO_ADDR_LIST=NO"
+Environment="EPICS_CA_ADDR_LIST=moxa-2"
+Environment="PYTHONPATH=/home/oper/python/ic_modules:/home/oper/python"
+
+ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services
+
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

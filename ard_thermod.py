@@ -84,6 +84,7 @@ class ArdThermo:
                 self.chans[nline][i+1].setValue(ts[i]/128)
 
         self.pack_count += 1
+
         if self.pack_count > 5:
             self.pack_count = 0
             # sending keep-alive
