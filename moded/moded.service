@@ -3,8 +3,8 @@ Description=Accelerator mode control service
 After=network.target
 
 [Service]
-#User=oper
-User=femanov
+User=oper
+#User=femanov
 Type=notify
 NotifyAccess=all
 
