@@ -22,7 +22,7 @@ class ChanFactory:
         return None
 
 
-class ModeDaemon:
+class ModeController:
     def __init__(self):
         self.db = ModesDB()
         ans = self.db.mode_chans()
@@ -142,11 +142,16 @@ class ModeDaemon:
 
 
 class ModeService(CXService):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+        self.mc = None
+
     def main(self):
-        self.m = ModeDaemon()
+        print('running main')
+        self.mc = ModeController()
 
     def clean_proc(self):
-        self.m.dump_state()
+        self.mc.dump_state()
 
 
 
