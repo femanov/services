@@ -7,70 +7,88 @@ else:
     import pycx4.pycda as cda
 from transitions import Machine
 
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
 class LinBeamSwitch:
     def __init__(self):
-        self.states = ['in', 'open', 'closed', 'opening', 'closing']
+        self.states = ['unknown', 'open', 'closed', 'opening', 'closing']
         self.transitions = [
-            {'trigger': 'data_update', 'source': 'in', 'dest': 'open', 'conditions': ['is_open']},
-            {'trigger': 'data_update', 'source': 'in', 'dest': 'closed', 'unless': ['is_open']},
+            {'trigger': 'update', 'source': '*', 'dest': 'unknown', 'conditions': ['is_unknown']},
+            {'trigger': 'update', 'source': '*', 'dest': 'open', 'conditions': ['is_open']},
+            {'trigger': 'update', 'source': '*', 'dest': 'closed', 'conditions': ['is_closed']},
+            {'trigger': 'update', 'source': '*', 'dest': 'opening', 'conditions': ['is_opening']},
+            {'trigger': 'update', 'source': '*', 'dest': 'closing', 'conditions': ['is_closing']},
             # {'trigger': '', 'source': '', 'dest': ''},
             # {'trigger': '', 'source': '', 'dest': ''},
         ]
 
-        self.m = Machine(model=self, states=self.states, transitions=self.transitions, initial='in')
-
-    def is_open(self):
-        return True
-
-
-
-def linbeam_state(cav_h_val):
-    if cav_h_val > 0:
-        return 'open'
-    if cav_h_val < -3000:
-        return 'closed'
-    return None
-
-
-# the class to close linac beam with cav_h corrector and observe state
-class LinBeamCtl:
-    stateRequested = cda.Signal(str)
-    stateChanged = cda.Signal(str)
-    stateMeas = cda.Signal(str)
-
-    def __init__(self):
-        super(LinBeamCtl, self).__init__()
+        self.m = Machine(model=self, states=self.states, transitions=self.transitions, initial='unknown')
 
         self.cav_h_iset_chan = cda.DChan('canhw:11.rst1.CAV_H.Iset', on_update=True)
         self.cav_h_imeas_chan = cda.DChan('canhw:11.rst1.CAV_H.Imes', on_update=True)
 
-        self.cav_h_iset_chan.valueChanged.connect(self.iset_cb)
-        self.cav_h_imeas_chan.valueChanged.connect(self.imeas_cb)
+        self.cav_h_imeas_chan.setTolerance(10.0)  # 10 mA to react
+        self.cav_h_iset_chan.valueChanged.connect(self.cavh_update)
+        self.cav_h_imeas_chan.valueChanged.connect(self.cavh_update)
 
-        self.iset_saved = None
-        self.state = None
-        self.state_meas = None
+        #self.vepp3_infl_chan = cda.StrChan('cxout:11.vepp3.tInflectorStatus', max_nelems=100)
+        self.vepp3_chan = cda.StrChan('cxout:11.vepp3.tstatus', max_nelems=100)
 
-    def iset_cb(self, chan):
-        state = linbeam_state(chan.val)
-        if state != self.state:
-            self.state = state
-            self.stateChanged.emit(state)
+        self.vepp3_chan.valueMeasured.connect(self.vepp3_update)
 
-    def imeas_cb(self, chan):
-        state_meas = linbeam_state(chan.val)
-        if state_meas != self.state_meas:
-            self.state_meas = state_meas
-            self.stateMeas.emit(state_meas)
+    def on_enter_unknown(self):
+        print("unknown state")
 
-    def close_beam(self):
-        if self.state == 'open':
-            self.iset_saved = self.cav_h_iset_chan.val
-            self.cav_h_iset_chan.setValue(-1.0 * self.iset_saved)
+    def on_enter_open(self):
+        print("beam on")
+
+    def on_enter_closed(self):
+        print("beam off")
+
+    def on_enter_opening(self):
+        print('opening beam')
+
+    def on_enter_closing(self):
+        print('closing beam')
+
+    def is_unknown(self):
+        return True if (self.cav_h_imeas_chan.val < 4000 and self.cav_h_imeas_chan.val > -4000) or \
+                       (self.cav_h_iset_chan.val < 4000 and self.cav_h_iset_chan.val > -4000) else False
+
+    def is_open(self):
+        return True if self.cav_h_imeas_chan.val > 4000 and self.cav_h_iset_chan.val > 4000 else False
+
+    def is_closed(self):
+        return True if self.cav_h_imeas_chan.val < -4000 and self.cav_h_iset_chan.val < -4000 else False
+
+    def is_opening(self):
+        return True if self.cav_h_imeas_chan.val < 4000 and self.cav_h_iset_chan.val > 4000 else False
+
+    def is_closing(self):
+        return True if self.cav_h_imeas_chan.val < -4000 and self.cav_h_iset_chan.val < -4000 else False
 
     def open_beam(self):
-        if self.state == 'closed':
-            if self.iset_saved is None:
-                self.iset_saved = -1.0 * self.cav_h_iset_chan.val
-            self.cav_h_iset_chan.setValue(self.iset_saved)
+        self.cav_h_iset_chan.setValue(4700)
+
+    def close_beam(self):
+        self.cav_h_iset_chan.setValue(-4700)
+
+    def cavh_update(self, chan):
+        print(chan.name, chan.val)
+        self.update()
+
+    def vepp3_update(self, chan):
+        print('update from vepp3: ', chan.name, chan.val)
+        if chan.val == 'Injection':
+            self.open_beam()
+        else:
+            self.close_beam()
+
+
+sw = LinBeamSwitch()
+
+cda.main_loop()
+
+
