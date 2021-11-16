@@ -33,10 +33,20 @@ class LinBeamSwitch:
         self.cav_h_iset_chan.valueChanged.connect(self.cavh_update)
         self.cav_h_imeas_chan.valueChanged.connect(self.cavh_update)
 
-        #self.vepp3_infl_chan = cda.StrChan('cxout:11.vepp3.tInflectorStatus', max_nelems=100)
-        self.vepp3_chan = cda.StrChan('cxout:11.vepp3.tstatus', max_nelems=100)
+        # cxhw:0.beamswitch.state
+        # cxhw:0.beamswitch.state_t
+        # cxhw:0.BeamSwitch.SwitchOn
+        # cxhw:0.BeamSwitch.SwitchOff
 
-        self.vepp3_chan.valueMeasured.connect(self.vepp3_update)
+        #self.vepp3_infl_chan = cda.StrChan('cxout:11.vepp3.tInflectorStatus', max_nelems=100)
+        #self.vepp3_chan = cda.StrChan('cxout:11.vepp3.tstatus', max_nelems=100)
+        #self.vepp3_chan.valueMeasured.connect(self.vepp3_update)
+
+        self.on_chan = cda.IChan('cxhw:0.BeamSwitch.SwitchOn')
+        self.off_chan = cda.IChan('cxhw:0.BeamSwitch.SwitchOff')
+        self.state_chan = cda.IChan('cxhw:0.BeamSwitch.state')
+        self.state_t_chan = cda.StrChan('cxhw:0.beamswitch.state_t', max_nelems=100)
+
 
     def on_enter_unknown(self):
         print("unknown state")
