@@ -5,7 +5,7 @@ import os
 import pycx4.pycda as cda
 
 
-sensor_file='/sys/class/thermal/thermal_zone0/temp'
+sensor_file = '/sys/class/thermal/thermal_zone0/temp'
 f = io.open(sensor_file, 'r')
 os.set_blocking(f.fileno(), False)  # make it nonblocking
 
