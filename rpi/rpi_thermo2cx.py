@@ -44,16 +44,20 @@ class RpiThermo:
     def look_for_sensors(self):
         base_dir = '/sys/bus/w1/devices/'
         device_folder = glob.glob(base_dir + '28*') + glob.glob(base_dir + '10*')
-        print(device_folder)
-        if len(device_folder) > 0:
-            print("something found")
-
-            self.search_retry = 0
-        else:
-            print("not yet found")
+        #print(device_folder)
+        if len(device_folder) == 1:
+            print("1 found, time = ", time.time() - self.start_time)
             self.search_retry += 1
             if self.search_retry < 100:
-                self.timer.singleShot(100)
+                self.timer.singleShot(10)
+        if len(device_folder) == 2:
+            print("2 found, time = ", time.time() - self.start_time)
+            cda.break_()
+
+        if len(device_folder) == 0:
+            self.search_retry += 1
+            if self.search_retry < 100:
+                self.timer.singleShot(10)
 
 
         #device_file = device_folder + '/temperature'
