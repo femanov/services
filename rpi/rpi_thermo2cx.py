@@ -50,7 +50,7 @@ class RpiTherm:
 
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
-        self.pwr_timer.timeout.conect(self.cycle_pwr_finish)
+        self.pwr_timer.timeout.connect(self.cycle_pwr_finish)
 
         self.line_pwr.on()
         self.search_timer.singleShot(1000, proc=self.look_for_sensors)
