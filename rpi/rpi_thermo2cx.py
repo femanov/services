@@ -105,7 +105,7 @@ class RpiTherm:
 
 class RpiMonitorService(CXService):
     def main(self):
-        self.rpi_mon = RpiThermo(expected_devs=2)
+        self.rpi_mon = RpiTherm(expected_devs=2)
 
 
 s = RpiMonitorService('rpi_monitor')
