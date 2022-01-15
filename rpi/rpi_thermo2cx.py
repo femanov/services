@@ -23,7 +23,6 @@ import glob
 import os
 from platform import node
 from cservice import CXService
-import time
 
 
 class W1Sensor:
@@ -36,7 +35,7 @@ class W1Sensor:
     def fd_ready(self, ev):
         ev.file.seek(0)
         line = ev.file.readline()
-        print(line)
+        print(int(line)/1000)
         # if equals_pos != -1:
         #     self.room_t_chan.setValue(float(lines[1][equals_pos+2:]) / 1000.0 )
         # self.cpu_t_chan.setValue(self.cpu_t.temperature)
@@ -52,10 +51,13 @@ class RpiTherm:
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
         self.pwr_timer.timeout.connect(self.cycle_pwr_finish)
+        self.sensors_timer = cda.Timer()
+        self.sensors_timer.timeout.connect(self.create_sensors)
 
         self.line_pwr.on()
         self.search_timer.singleShot(1000, proc=self.look_for_sensors)
         self.search_retry = 0
+        self.device_folder = None
 
     def __del__(self):
         self.line_pwr.off()
@@ -71,9 +73,11 @@ class RpiTherm:
             else:
                 self.search_timer.singleShot(1000)
         else:
-            print(device_folder)
+            self.device_folder = device_folder
+            self.sensors_timer.singleShot(1000)
 
-        for x in device_folder:
+    def create_sensors(self):
+        for x in self.device_folder:
             if x not in self.sensors:
                 self.sensors[x] = W1Sensor(x)
 
