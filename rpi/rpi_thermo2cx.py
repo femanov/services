@@ -35,7 +35,8 @@ class W1Sensor:
 
     def fd_ready(self, ev):
         ev.file.seek(0)
-        lines = ev.file.readlines()
+        line = ev.file.readline()
+        print(line)
         # if equals_pos != -1:
         #     self.room_t_chan.setValue(float(lines[1][equals_pos+2:]) / 1000.0 )
         # self.cpu_t_chan.setValue(self.cpu_t.temperature)
@@ -64,7 +65,7 @@ class RpiTherm:
         device_folder = glob.glob(base_dir + '28*') + glob.glob(base_dir + '10*')
         if len(device_folder) < self.expected_devs:
             self.search_retry += 1
-            if self.search_retry == 10:
+            if self.search_retry == 20:
                 self.search_retry = 0
                 self.cycle_pwr()
             else:
@@ -72,9 +73,9 @@ class RpiTherm:
         else:
             print(device_folder)
 
-        # for x in device_folder:
-        #    if x not in
-
+        for x in device_folder:
+            if x not in self.sensors:
+                self.sensors[x] = W1Sensor(x)
 
     def cycle_pwr(self):
         self.line_pwr.off()
