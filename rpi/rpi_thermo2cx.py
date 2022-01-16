@@ -65,9 +65,9 @@ class RpiTherm:
         self.search_retry = 0
         self.device_folder = None
 
-    def __del__(self):
-        self.sensors = {}
-        self.line_pwr.off()
+    # def __del__(self):
+    #     self.sensors = {}
+    #     self.line_pwr.off()
 
     def look_for_sensors(self):
         base_dir = '/sys/bus/w1/devices/'
