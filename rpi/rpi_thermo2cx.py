@@ -29,23 +29,31 @@ from cservice import CXService
 
 
 class W1Sensor:
+    measured = cda.Signal(float)
+    disconnected = cda.Signal()
+
     def __init__(self, device_folder):
         self.dev_file = open(device_folder + '/temperature', 'r')
         os.set_blocking(self.dev_file.fileno(), False)  # make it nonblocking
         self.file_ev = cda.FdEvent(self.dev_file)
         self.file_ev.ready.connect(self.fd_ready)
-
-    # def __del__(self):
-    #
+        self.temp = -200  # never read value
+        self.disconnect_count = 0
 
     def fd_ready(self, ev):
         ev.file.seek(0)
         line = ev.file.readline()
-        print(int(line)/1000)
-        # if equals_pos != -1:
-        #     self.room_t_chan.setValue(float(lines[1][equals_pos+2:]) / 1000.0 )
-        # self.cpu_t_chan.setValue(self.cpu_t.temperature)
-        # self.la_chan.setValue(self.la.load_average)
+        try:
+            self.temp = int(line) / 1000
+            self.measured.emit(self.temp)
+            print(self.temp)
+        except ValueError:
+            self.disconnect_count += 1
+            print('read error')
+            if self.disconnect_count == 3:
+                self.disconnected.emit()
+                print('sensor disconnected')
+
 
 
 class RpiTherm:
@@ -111,6 +119,8 @@ class RpiTherm:
 #         self.cpu_t_chan = cda.DChan(srv + cx_devname + ".cputemp")
 #         self.room_t_chan = cda.DChan(srv + cx_devname + ".roomtemp")
 #         self.la_chan = cda.DChan(srv + cx_devname + ".loadaverage")
+        # self.cpu_t_chan.setValue(self.cpu_t.temperature)
+        # self.la_chan.setValue(self.la.load_average)
 
 
 
