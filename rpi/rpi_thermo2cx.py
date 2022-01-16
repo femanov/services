@@ -35,8 +35,8 @@ class W1Sensor:
         self.file_ev = cda.FdEvent(self.dev_file)
         self.file_ev.ready.connect(self.fd_ready)
 
-    def __del__(self):
-
+    # def __del__(self):
+    #
 
     def fd_ready(self, ev):
         ev.file.seek(0)
