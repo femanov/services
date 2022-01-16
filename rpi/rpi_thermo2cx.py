@@ -10,6 +10,9 @@
 #
 # According to my experience sensors connection can be lost due to some
 # kind of out of sync. In that case helps only power cycle for sensors.
+# It's possible to power sensors line from gpio pin, then we can power
+# cycle sensors programmatically.
+#
 #
 # onboard devices looks like always ready to read, so in order to avoid
 # huge loads: will read them when ds* temperature ready.
@@ -31,6 +34,9 @@ class W1Sensor:
         os.set_blocking(self.dev_file.fileno(), False)  # make it nonblocking
         self.file_ev = cda.FdEvent(self.dev_file)
         self.file_ev.ready.connect(self.fd_ready)
+
+    def __del__(self):
+
 
     def fd_ready(self, ev):
         ev.file.seek(0)
@@ -60,6 +66,7 @@ class RpiTherm:
         self.device_folder = None
 
     def __del__(self):
+        self.sensors = {}
         self.line_pwr.off()
 
     def look_for_sensors(self):
