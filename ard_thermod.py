@@ -107,16 +107,22 @@ class ArdThermo:
             ids = struct.unpack("Q" * ndevs, data[3:3+8*ndevs])
             ms = struct.unpack("I", data[3+8*ndevs:3+8*ndevs+4])
             self.ids[nline] = ids
-            print(ids, ms[0])
+            print(ids)
 
         elif pack_type == 2:
             ts = struct.unpack("h" * ndevs, data[3:3+2*ndevs])
             ms = struct.unpack("I", data[3+2*ndevs:3+2*ndevs+4])
+
             for i in range(len(ts)):
                 if ts[i] == -7040 or ts[i] == 10880:
                     continue
-                cname = sensors_map[self.ids[nline][i]]
-                self.chans[cname].setValue(ts[i]/128)
+                try:
+                    cname = sensors_map[self.ids[nline][i]]
+                    self.chans[cname].setValue(ts[i] / 128)
+                except IndexError:
+                    print(nline)
+                    print(ts)
+
 
         self.pack_count += 1
 
