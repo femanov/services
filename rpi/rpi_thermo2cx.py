@@ -55,7 +55,6 @@ class W1Sensor:
                 print('sensor disconnected')
 
 
-
 class RpiTherm:
     def __init__(self, pwr_pin=19, expected_devs=1):
         self.line_pwr = DigitalOutputDevice(pwr_pin)

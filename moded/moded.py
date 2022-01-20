@@ -85,7 +85,7 @@ class ModeController:
                 continue
             chan.setValue(mode_data[c_id][0])
             loaded_count += 1
-        msg = 'loaded %d, nochange %d, unavailiable %d' % (loaded_count, nochange_count, na_count)
+        msg = f'loaded {loaded_count}, nochange {nochange_count}, unavailiable {na_count}'
         return msg
 
     def load_zeros(self, syslist, a_kinds):
