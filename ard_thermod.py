@@ -117,7 +117,7 @@ class ArdThermo:
                 if ts[i] == -7040 or ts[i] == 10880:
                     continue
                 try:
-                    cname = sensors_map[self.ids[nline][i]]
+                    cname = sensors_map[self.ids[nline-1][i]]
                     self.chans[cname].setValue(ts[i] / 128)
                 except IndexError:
                     print(nline)
