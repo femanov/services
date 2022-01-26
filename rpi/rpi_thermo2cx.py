@@ -53,7 +53,6 @@ class W1Sensor:
         self.family = d[0]
         self.s_id = d[1]
 
-
     def fd_ready(self, ev):
         ev.file.seek(0)
         line = ev.file.readline()
@@ -62,6 +61,7 @@ class W1Sensor:
             self.measured.emit(self.temp)
             self.disconnect_count = 0
             self.measured.emit(self.temp)
+            print(self.temp, id(self))
         except ValueError:
             self.disconnect_count += 1
             if self.disconnect_count == 3:
