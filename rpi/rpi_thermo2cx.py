@@ -74,8 +74,10 @@ class RpiThermo:
         self.expected_devs = expected_devs
         self.sensors = {}
 
-        self.map = sensors_map[node()]
-        self.t_chans = {k: cda.DChan(self.map[k]+'.t') for k in self.map}
+        self.s_map = sensors_map[node()]
+        self.t_chans = {k: cda.DChan(self.s_map[k]+'.t') for k in self.s_map}
+        print(self.s_map)
+        print(self.t_chans)
 
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
@@ -116,6 +118,7 @@ class RpiThermo:
         print('adding sensor: ', folder)
         sens = W1Sensor(folder)
         self.sensors[folder] = sens
+        print('connected')
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
 
     def cycle_pwr(self):
