@@ -28,6 +28,16 @@ from platform import node
 from cservice import CXService
 
 
+# sensor id: dev
+sensors_map = {
+    'home-pi': {
+        '0000063fe44b': 'cxhw:5.out1',
+        '3c01b556e26e': 'cxhw:5.pol_room',
+    }
+}
+
+
+
 class W1Sensor:
     measured = cda.Signal(float)
     disconnected = cda.Signal()
@@ -39,6 +49,10 @@ class W1Sensor:
         self.file_ev.ready.connect(self.fd_ready)
         self.temp = -200  # never read value
         self.disconnect_count = 0
+        d = device_folder.split('/')[-1].split('-')
+        self.family = d[0]
+        self.s_id = d[1]
+
 
     def fd_ready(self, ev):
         ev.file.seek(0)
@@ -46,20 +60,22 @@ class W1Sensor:
         try:
             self.temp = int(line) / 1000
             self.measured.emit(self.temp)
-            print(self.temp)
+            self.disconnect_count = 0
+            self.measured.emit(self.temp)
         except ValueError:
             self.disconnect_count += 1
-            print('read error')
             if self.disconnect_count == 3:
                 self.disconnected.emit()
-                print('sensor disconnected')
 
 
-class RpiTherm:
+class RpiThermo:
     def __init__(self, pwr_pin=19, expected_devs=1):
         self.line_pwr = DigitalOutputDevice(pwr_pin)
         self.expected_devs = expected_devs
         self.sensors = {}
+
+        self.map = sensors_map[node()]
+        self.t_chans = {cda.DChan(self.map[k]+'.t') for k in self.map}
 
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
@@ -78,7 +94,7 @@ class RpiTherm:
 
     def look_for_sensors(self):
         base_dir = '/sys/bus/w1/devices/'
-        device_folder = glob.glob(base_dir + '28*') + glob.glob(base_dir + '10*')
+        device_folder = glob.glob(f'{base_dir}28*') + glob.glob(f'{base_dir}10*')
         if len(device_folder) < self.expected_devs:
             self.search_retry += 1
             if self.search_retry == 20:
@@ -94,6 +110,13 @@ class RpiTherm:
         for x in self.device_folder:
             if x not in self.sensors:
                 self.sensors[x] = W1Sensor(x)
+
+    def add_sensor(self, folder):
+        if folder in self.sensors:
+            return
+        sens = W1Sensor(folder)
+        self.sensors[folder] = sens
+        sens.measured.connect(self.t_chans[sens.s_id].setValue)
 
     def cycle_pwr(self):
         self.line_pwr.off()
@@ -126,7 +149,7 @@ class RpiTherm:
 
 class RpiMonitorService(CXService):
     def main(self):
-        self.rpi_mon = RpiTherm(expected_devs=2)
+        self.rpi_mon = RpiThermo(expected_devs=2)
 
 
 s = RpiMonitorService('rpi_monitor')
