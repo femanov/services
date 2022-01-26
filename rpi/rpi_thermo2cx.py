@@ -75,7 +75,7 @@ class RpiThermo:
         self.sensors = {}
 
         self.map = sensors_map[node()]
-        self.t_chans = {cda.DChan(self.map[k]+'.t') for k in self.map}
+        self.t_chans = {k: cda.DChan(self.map[k]+'.t') for k in self.map}
 
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
