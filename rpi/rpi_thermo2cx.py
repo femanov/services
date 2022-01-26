@@ -108,8 +108,7 @@ class RpiThermo:
 
     def create_sensors(self):
         for x in self.device_folder:
-            if x not in self.sensors:
-                self.sensors[x] = W1Sensor(x)
+            self.add_sensor(x)
 
     def add_sensor(self, folder):
         if folder in self.sensors:
