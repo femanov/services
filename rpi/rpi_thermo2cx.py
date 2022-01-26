@@ -61,7 +61,7 @@ class W1Sensor:
             self.measured.emit(self.temp)
             self.disconnect_count = 0
             self.measured.emit(self.temp)
-            print(self.temp, id(self))
+            #print(self.temp, id(self))
         except ValueError:
             self.disconnect_count += 1
             if self.disconnect_count == 3:
@@ -113,6 +113,7 @@ class RpiThermo:
     def add_sensor(self, folder):
         if folder in self.sensors:
             return
+        print('adding sensor: ', folder)
         sens = W1Sensor(folder)
         self.sensors[folder] = sens
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
