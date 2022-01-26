@@ -39,8 +39,6 @@ sensors_map = {
 
 
 class W1Sensor:
-    measured = cda.Signal(float)
-    disconnected = cda.Signal()
 
     def __init__(self, device_folder):
         self.dev_file = open(device_folder + '/temperature', 'r')
@@ -52,6 +50,10 @@ class W1Sensor:
         d = device_folder.split('/')[-1].split('-')
         self.family = d[0]
         self.s_id = d[1]
+
+        self.measured = cda.Signal(float)
+        self.disconnected = cda.Signal()
+
 
     def fd_ready(self, ev):
         ev.file.seek(0)
