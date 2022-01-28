@@ -122,6 +122,10 @@ class RpiThermo:
         self.sensors[folder] = sens
         print('connected')
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
+        sens.measured.connect(self.meas_call_test)
+
+    def meas_call_test(self, value):
+        print('meas_call_test')
 
     def cycle_pwr(self):
         self.line_pwr.off()
