@@ -37,9 +37,7 @@ sensors_map = {
 }
 
 
-
 class W1Sensor:
-
     def __init__(self, device_folder):
         self.dev_file = open(device_folder + '/temperature', 'r')
         os.set_blocking(self.dev_file.fileno(), False)  # make it nonblocking
@@ -51,9 +49,8 @@ class W1Sensor:
         self.family = d[0]
         self.s_id = d[1]
 
-        self.measured = cda.Signal(float)
+        self.measured = cda.Signal(float, owner=self.s_id, name="measured")
         self.disconnected = cda.Signal()
-
 
     def fd_ready(self, ev):
         ev.file.seek(0)
@@ -62,8 +59,8 @@ class W1Sensor:
             self.temp = int(line) / 1000
             self.measured.emit(self.temp)
             self.disconnect_count = 0
-            self.measured.emit(self.temp)
             print("data read from device file:", self.temp)
+            self.measured.emit(self.temp)
         except ValueError:
             self.disconnect_count += 1
             if self.disconnect_count == 3:
@@ -120,12 +117,8 @@ class RpiThermo:
         print('adding sensor: ', folder)
         sens = W1Sensor(folder)
         self.sensors[folder] = sens
-        print('connected')
+        print('connected to signal')
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
-        sens.measured.connect(self.meas_call_test)
-
-    def meas_call_test(self, value):
-        print('meas_call_test')
 
     def cycle_pwr(self):
         self.line_pwr.off()
