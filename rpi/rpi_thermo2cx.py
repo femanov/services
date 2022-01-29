@@ -49,8 +49,8 @@ class W1Sensor:
         self.family = d[0]
         self.s_id = d[1]
 
-        self.measured = cda.Signal(float, owner=self.s_id, name="measured")
-        self.disconnected = cda.Signal()
+        self.measured = cda.InstSignal(float, owner=self.s_id, name="measured")
+        self.disconnected = cda.InstSignal()
 
     def fd_ready(self, ev):
         ev.file.seek(0)
