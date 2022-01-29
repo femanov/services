@@ -54,15 +54,23 @@ class W1Sensor:
 
     def fd_ready(self, ev):
         ev.file.seek(0)
-        line = ev.file.readline()
         try:
-            self.temp = int(line) / 1000
-            self.disconnect_count = 0
-            self.measured.emit(self.temp)
-        except ValueError:
-            self.disconnect_count += 1
-            if self.disconnect_count == 3:
-                self.disconnected.emit()
+            line = ev.file.readline()
+            try:
+                self.temp = int(line) / 1000
+                self.disconnect_count = 0
+                self.measured.emit(self.temp)
+            except ValueError:
+                self.disconnect_count += 1
+                if self.disconnect_count == 3:
+                    self.disconnect()
+        except OSError:
+            self.disconnect()
+
+    def disconnect(self):
+        self.file_ev = None
+        self.dev_file.close()
+        self.disconnected.emit()
 
 
 class RpiThermo:
@@ -110,9 +118,15 @@ class RpiThermo:
         sens = W1Sensor(folder)
         self.sensors[folder] = sens
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
+        sens.disconnected.connect(self.sensors_disconnected)
+
+    def sensors_disconnected(self):
+        print("lost connection to sensors! resetting")
+        self.cycle_pwr()
 
     def cycle_pwr(self):
         self.line_pwr.off()
+        self.sensors = {}
         self.pwr_timer.singleShot(1000)
 
     def cycle_pwr_finish(self):
