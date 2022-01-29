@@ -58,8 +58,7 @@ class W1Sensor:
         try:
             self.temp = int(line) / 1000
             self.disconnect_count = 0
-            print("data read from device file:", self.temp)
-            self.measured.emit(self.temp, caller=self.s_id)
+            self.measured.emit(self.temp)
         except ValueError:
             self.disconnect_count += 1
             if self.disconnect_count == 3:
@@ -74,8 +73,6 @@ class RpiThermo:
 
         self.s_map = sensors_map[node()]
         self.t_chans = {k: cda.DChan(self.s_map[k]+'.t') for k in self.s_map}
-        print(self.s_map)
-        print(self.t_chans)
 
         self.search_timer = cda.Timer()
         self.pwr_timer = cda.Timer()
@@ -87,10 +84,6 @@ class RpiThermo:
         self.search_timer.singleShot(1000, proc=self.look_for_sensors)
         self.search_retry = 0
         self.device_folder = None
-
-    # def __del__(self):
-    #     self.sensors = {}
-    #     self.line_pwr.off()
 
     def look_for_sensors(self):
         base_dir = '/sys/bus/w1/devices/'
@@ -113,10 +106,9 @@ class RpiThermo:
     def add_sensor(self, folder):
         if folder in self.sensors:
             return
-        print('adding sensor: ', folder)
+        print(f'adding sensor: {folder}')
         sens = W1Sensor(folder)
         self.sensors[folder] = sens
-        print('connected to signal')
         sens.measured.connect(self.t_chans[sens.s_id].setValue)
 
     def cycle_pwr(self):
