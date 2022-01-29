@@ -57,7 +57,6 @@ class W1Sensor:
         line = ev.file.readline()
         try:
             self.temp = int(line) / 1000
-            self.measured.emit(self.temp)
             self.disconnect_count = 0
             print("data read from device file:", self.temp)
             self.measured.emit(self.temp, caller=self.s_id)
