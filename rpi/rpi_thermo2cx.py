@@ -60,7 +60,7 @@ class W1Sensor:
             self.measured.emit(self.temp)
             self.disconnect_count = 0
             print("data read from device file:", self.temp)
-            self.measured.emit(self.temp)
+            self.measured.emit(self.temp, caller=self.s_id)
         except ValueError:
             self.disconnect_count += 1
             if self.disconnect_count == 3:
