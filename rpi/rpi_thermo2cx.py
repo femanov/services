@@ -58,8 +58,11 @@ class W1Sensor:
             line = ev.file.readline()
             try:
                 self.temp = int(line) / 1000
-                self.disconnect_count = 0
-                self.measured.emit(self.temp)
+                if self.temp == 85.0 or self.temp == 127.94:
+                    self.disconnect_count += 1
+                else:
+                    self.disconnect_count = 0
+                    self.measured.emit(self.temp)
             except ValueError:
                 self.disconnect_count += 1
                 if self.disconnect_count == 3:
