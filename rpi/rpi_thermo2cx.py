@@ -52,6 +52,7 @@ class W1Sensor:
         self.disconnect_count = 0
         self.open_timer = cda.Timer()
         self.open_timer.timeout.connect(self.open_device_file)
+        self.open_device_file()
 
     def open_device_file(self):
         try:
