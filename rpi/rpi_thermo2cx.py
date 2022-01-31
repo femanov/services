@@ -36,6 +36,12 @@ sensors_map = {
     }
 }
 
+sensor_zero = {
+    '0000063fe44b': 0.625,
+    '3c01b556e26e': -0.125,
+
+}
+
 
 class W1Sensor:
     def __init__(self, device_folder):
@@ -45,6 +51,7 @@ class W1Sensor:
         d = device_folder.split('/')[-1].split('-')
         self.family = d[0]
         self.s_id = d[1]
+        self.s_zero = sensor_zero[self.s_id]
 
         self.dev_file = None
         self.file_ev = None
@@ -70,11 +77,12 @@ class W1Sensor:
         try:
             line = ev.file.readline()
             try:
-                self.temp = int(line) / 1000
-                if self.temp == 85.0 or self.temp == 127.94:
+                raw_temp = int(line) / 1000
+                if raw_temp == 85.0 or raw_temp == 127.94:
                     self.disconnect_count += 1
                 else:
                     self.disconnect_count = 0
+                    self.temp = raw_temp - self.s_zero
                     self.measured.emit(self.temp)
             except ValueError:
                 self.disconnect_count += 1
