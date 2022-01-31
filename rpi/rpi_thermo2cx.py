@@ -39,18 +39,30 @@ sensors_map = {
 
 class W1Sensor:
     def __init__(self, device_folder):
-        self.dev_file = open(device_folder + '/temperature', 'r')
-        os.set_blocking(self.dev_file.fileno(), False)  # make it nonblocking
-        self.file_ev = cda.FdEvent(self.dev_file)
-        self.file_ev.ready.connect(self.fd_ready)
-        self.temp = -200  # never read value
-        self.disconnect_count = 0
+        self.measured = cda.InstSignal(float)
+        self.disconnected = cda.InstSignal()
+        self.device_folder = device_folder
         d = device_folder.split('/')[-1].split('-')
         self.family = d[0]
         self.s_id = d[1]
 
-        self.measured = cda.InstSignal(float, owner=self.s_id, name="measured")
-        self.disconnected = cda.InstSignal()
+        self.dev_file = None
+        self.file_ev = None
+        self.temp = -200  # never read value
+        self.disconnect_count = 0
+        self.open_timer = cda.Timer()
+        self.open_timer.timeout.connect(self.open_device_file)
+
+    def open_device_file(self):
+        try:
+            self.dev_file = open(self.device_folder + '/temperature', 'r')
+            os.set_blocking(self.dev_file.fileno(), False)  # make it nonblocking
+            self.file_ev = cda.FdEvent(self.dev_file)
+            self.file_ev.ready.connect(self.fd_ready)
+        except FileNotFoundError:
+            print("temperature file not found")
+            self.disconnect_count += 1
+            self.open_timer.singleShot(1000)
 
     def fd_ready(self, ev):
         ev.file.seek(0)
