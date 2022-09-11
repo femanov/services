@@ -20,7 +20,7 @@ class ChanFactory:
         if protocol == 'cx':
             return cda.DChan(name, **kwargs)
         if protocol == 'EPICS':
-            return cda.DChan()
+            return cda.DChan(f'EPICS::{name}', **kwargs)
         return None
 
 
