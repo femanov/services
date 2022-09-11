@@ -13,6 +13,8 @@ from acc_db.db import ModesDB
 from acc_db.mode_cache import SysCache, ModeCache
 
 
+# earlier it was used to access EPICS with native python libs, now
+# CX has its own EPICS module.
 class ChanFactory:
     def create_chan(self, protocol, name, **kwargs):
         if protocol == 'cx':
@@ -104,8 +106,11 @@ class ModeController:
     def loadMarked(self, mark, syslist, types):
         if not self.check_syslist(syslist) or not types:
             return
-        data = self.mode_caches[mark].extract(syslist, types)
-        msg = self.applyMode(data)
+        if mark in self.mode_caches:
+            data = self.mode_caches[mark].extract(syslist, types)
+            msg = self.applyMode(data)
+        else:
+            print('no data in marks, need to load from database')
         self.mode_ser.markedLoaded(mark, msg)
 
     def markMode(self, mode_id, mark, comment, author):
@@ -140,6 +145,10 @@ class ModeController:
             dump_file.write(str(x) + "\n")
         dump_file.close()
 
+    def dump_cache_info(self):
+        # possibly needed for diagnostics
+        pass
+
 
 class ModeService(CXService):
     def __init__(self, name, **kwargs):
@@ -147,7 +156,6 @@ class ModeService(CXService):
         self.mc = None
 
     def main(self):
-        print('running main')
         self.mc = ModeController()
 
     def clean_proc(self):
