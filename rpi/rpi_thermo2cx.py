@@ -27,11 +27,10 @@ import os
 from platform import node
 from cservice import CXService
 
-
 # sensor id: dev
 sensors_map = {
     'home-pi': {
-        '0000063f923c': 'cxhw:5.out1',
+        '0000063d794c': 'cxhw:5.out1',
         #'0000063fe44b': 'cxhw:5.out1',
         #'3c01b556e26e': 'cxhw:5.pol_room',
     }
