@@ -119,6 +119,7 @@ class RpiThermo:
         self.device_folder = None
 
     def look_for_sensors(self):
+        print('looking for sensors')
         base_dir = '/sys/bus/w1/devices/'
         device_folder = glob.glob(f'{base_dir}28*') + glob.glob(f'{base_dir}10*')
         if len(device_folder) < self.expected_devs:
