@@ -134,6 +134,7 @@ class RpiThermo:
             self.sensors_timer.singleShot(1000)
 
     def create_sensors(self):
+        print('found all sensors')
         for x in self.device_folder:
             self.add_sensor(x)
 
