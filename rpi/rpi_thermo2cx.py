@@ -151,6 +151,7 @@ class RpiThermo:
         self.cycle_pwr()
 
     def cycle_pwr(self):
+        print('cycling sensors power')
         self.line_pwr.off()
         self.sensors = {}
         self.pwr_timer.singleShot(1000)
