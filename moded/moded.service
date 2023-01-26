@@ -14,12 +14,6 @@ Environment="EPICS_CA_ADDR_LIST=moxa-2"
 Environment="PYTHONPATH=/home/oper/python/ic_modules:/home/oper/python"
 ExecStart=/home/oper/py36/bin/python3 /home/oper/python/services/moded/moded.py -systemd
 
-# for local tests
-#Environment="LD_LIBRARY_PATH=/home/femanov/epics/base/lib/linux-x86_64:/home/femanov/4pult/cda/plugins"
-#Environment="EPICS_CA_AUTO_ADDR_LIST=NO"
-#Environment="EPICS_CA_ADDR_LIST=moxa-2"
-#Environment="PYTHONPATH=/home/femanov/python/web:/home/femanov/python/modules/pycx4:/home/femanov/python/ic_modules:/home/femanov/python/modules/cxwidgets:/home/femanov/python/modules/cservice:/home/femanov/python/modules/linac_calc:/home/femanov/python"
-#ExecStart=/usr/bin/python3 /home/femanov/python/services/moded/moded.py -systemd
 
 Restart=always
 RestartSec=30
