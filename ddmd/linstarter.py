@@ -1,22 +1,64 @@
-import pycx4.pycda as cda
+from pycx4.pycda import InstSignal, IChan
 
-cx_srv = 'canhw:19'
-prefix = cx_srv + '.'
+from transitions import Machine
 
 runmodes = {
-    'continous': 0,
+    'continuous': 0,
     'counter':   1
 }
-# syn_ie4.bum_going - not yet used, do i need it?
+
+states = ['fail',               # if some command not finished in expected time
+          'unknown',            # just started, no operation data yet
+          'switching_runmode',  # we ordered to switch runmode
+          'continuous',         # operating in continuous mode
+          'counter_idle',       # counter mode idle
+          'counter_start',      # counter mode start command issues
+          'counter_run']        # counter running
+
+transitions = [
+    # initial transitions
+    {'trigger': 'init', 'source': 'unknown', 'dest': 'continuous', 'unless': ['is_counter']},
+    {'trigger': 'init', 'source': 'unknown', 'dest': 'counter_idle', 'conditions': ['is_counter'],
+     'unless': ['is_running']},
+    {'trigger': 'init', 'source': 'unknown', 'dest': 'counter_run', 'conditions': ['is_counter', 'is_running']},
+
+    # when runmode switching requested
+    {'trigger': 'switch_runmode', 'source': ['continuous', 'counter_idle', 'counter_run'], 'dest': 'switching_runmode'},
+
+    # when recieved data about runmode
+    {'trigger': 'update_runmode', 'source': 'continuous', 'dest': 'counter_idle', 'conditions': ['is_counter'],
+     'unless': ['is_running']},
+    {'trigger': 'update_runmode', 'source': 'counter_idle', 'dest': 'continuous', 'unless': ['is_counter']},
+
+    {'trigger': 'start_request', 'source': 'counter_idle', 'dest': 'counter_start'},
+    {'trigger': 'run_confirmed', 'source': 'counter_start', 'dest': 'counter_run'},
+    {'trigger': 'run_done', 'source': 'counter_run', 'dest': 'counter_idle'},
+    {'trigger': 'run_timed_out', 'source': 'counter_run', 'dest': 'fail'},
+    {'trigger': 'reset', 'source': 'fail', 'dest': 'unknown'},
+
+    # {'trigger': 'update', 'source': 'counter_idle', 'dest': 'counter_run',
+    #  'conditions': ['is_counter', 'is_running']},
+
+    # {'trigger': 'update', 'source': '*', 'dest': 'on', 'conditions': ['is_on']},
+    # {'trigger': 'update', 'source': '*', 'dest': 'off', 'conditions': ['is_off']},
+    # {'trigger': 'update', 'source': '*', 'dest': 'turning_on', 'conditions': ['is_turning_on']},
+    # {'trigger': 'update', 'source': '*', 'dest': 'turning_off', 'conditions': ['is_turning_off']},
+    # {'trigger': '', 'source': '', 'dest': ''},
+    # {'trigger': '', 'source': '', 'dest': ''},
+
+    # 2DO: timeout on transition to failed state
+]
 
 
 class LinStarter:
-    runmodeChanged = cda.Signal(str)
-    nshotsChanged = cda.Signal(int)
-    runDone = cda.Signal()
-
     def __init__(self):
         super().__init__()
+        self.runmodeChanged = InstSignal(str)
+        self.nshotsChanged = InstSignal(int)
+        self.runDone = InstSignal()
+
+        self.m = Machine(model=self, states=states, transitions=transitions, initial='unknown',
+                         after_state_change=self.state_notify)
 
         # state variables.
         self.runmode = None
@@ -25,41 +67,51 @@ class LinStarter:
         self.run_req = False
         self.nshots = 0  # number of requested shots
         self.nshots_req = False
-        self.eshots = 5
-        self.pshots = 10
-        self.particles = 'e'
 
-        self.c_runmode = cda.DChan(prefix + 'syn_ie4.mode', on_update=True)
-        self.c_start = cda.DChan(prefix + 'syn_ie4.bum_start', on_update=True)
-        self.c_stop = cda.DChan(prefix + 'syn_ie4.bum_stop', on_update=True)
-        self.c_lamsig = cda.DChan(prefix + 'syn_ie4.lam_sig', on_update=True)
-        self.c_nshots = cda.DChan(prefix + 'syn_ie4.re_bum', on_update=True)
+        self.c_runmode = IChan('syn_ie4.mode', on_update=True)
+        self.c_running = IChan('syn_ie4.bum_going', on_update=True)
+        self.c_lamsig = IChan('syn_ie4.lam_sig', on_update=True)
+        self.c_start = IChan('syn_ie4.bum_start', on_update=True)
+        self.c_stop = IChan('syn_ie4.bum_stop', on_update=True)
+        self.c_nshots = IChan('syn_ie4.re_bum', on_update=True)
 
         self.c_runmode.valueMeasured.connect(self.runmode_update)
+        self.c_running.valueChanged.connect(self.running_update)
         self.c_nshots.valueChanged.connect(self.nshots_update)
         self.c_lamsig.valueMeasured.connect(self.done_proc)
 
-        self.c_eshots = cda.DChan('cxhw:0.ddm.eshots')
-        self.c_pshots = cda.DChan('cxhw:0.ddm.pshots')
-        self.c_eshots.valueChanged.connect(self.shots_update)
-        self.c_pshots.valueChanged.connect(self.shots_update)
+    def state_notify(self):
+        print('linstarter machine state: ', self.state)
 
-    def shots_update(self, chan):
-        if chan is self.c_eshots:
-            if chan.val == 0:
-                chan.setValue(self.eshots)
-                return
-            self.eshots = chan.val
-            if self.particles == 'e':
-                self.set_nshots(self.eshots)
-        if chan is self.c_pshots:
-            if chan.val == 0:
-                chan.setValue(self.pshots)
-                return
-            self.pshots = chan.val
-            if self.particles == 'p':
-                self.set_nshots(self.pshots)
+    def runmode_update(self, chan):
+        self.runmode = 'counter' if chan.val == 1 else 'continuous'  # not totally correct
+        self.update()
+        self.runmodeChanged.emit(self.runmode)
 
+    def done_proc(self, chan):
+        if self.running:
+            self.running = False
+            self.runDone.emit()
+
+    def running_update(self, chan):
+        self.running = bool(chan.val)
+        print('running:', self.running)
+        self.update()
+
+    def is_counter(self):
+        return True if self.runmode == 'counter' else False
+
+    def is_running(self):
+        return self.running
+
+
+    def set_runmode(self, runmode):
+        if self.runmode != runmode:
+            self.c_runmode.setValue(runmodes[runmode])
+            self.runmode_req = True
+
+
+    # check correctness
     def set_nshots(self, nshots):
         if self.nshots != nshots:
             self.c_nshots.setValue(nshots)
@@ -69,28 +121,6 @@ class LinStarter:
         self.nshots = chan.val
         self.nshots_req = False
         self.nshotsChanged.emit(self.nshots)
-
-    def set_particles(self, particles):
-        self.particles = particles
-        if self.particles == 'e':
-            self.set_nshots(self.eshots)
-        if self.particles == 'p':
-            self.set_nshots(self.pshots)
-
-    def set_runmode(self, runmode):
-        if self.runmode != runmode:
-            self.c_runmode.setValue(runmodes[runmode])
-            self.runmode_req = True
-
-    def runmode_update(self, chan):
-        self.runmode = next(key for key, value in runmodes.items() if value == chan.val)
-        self.runmode_req = False
-        self.runmodeChanged.emit(self.runmode)
-
-    def done_proc(self, chan):
-        if self.running:
-            self.running = False
-            self.runDone.emit()
 
     def start(self):
         if self.runmode == 'continous':
