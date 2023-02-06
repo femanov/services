@@ -104,12 +104,10 @@ class LinStarter:
     def is_running(self):
         return self.running
 
-
     def set_runmode(self, runmode):
         if self.runmode != runmode:
             self.c_runmode.setValue(runmodes[runmode])
             self.runmode_req = True
-
 
     # check correctness
     def set_nshots(self, nshots):
