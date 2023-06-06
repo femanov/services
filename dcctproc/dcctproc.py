@@ -3,6 +3,20 @@ import pycx4.pycda as cda
 import numpy as np
 from cservice import CXService
 from settings.cx import ctl_server
+import scipy.constants as const
+
+# IC damping
+f0 = 10.94e06  # hz
+t0 = 1./f0
+
+
+def current2n_no(current):
+    """
+    converts DR current to particle number (e- or e+)
+    :param current: beam current in mA
+    :return: N - particles number
+    """
+    return (current * t0) / (1000 * const.e)
 
 
 class DCCTproc:
@@ -29,6 +43,9 @@ class DCCTproc:
         self.lifetime_chan = cda.DChan(dname + 'lifetime')
         self.curstep_chan = cda.DChan(f'{dname}.currentstep')
 
+        self.n_beam_chan = cda.DChan(f'{dname}.Nbeam')
+        self.n_step_chan = cda.DChan(f'{dname}.Nstep')
+
         self.u2i = 20.50  # calibration coefficient
         self.adc_zero = 0.0
 
@@ -50,6 +67,7 @@ class DCCTproc:
     def dcctv_measured(self, chan):
         beamcur = self.u2i * (chan.val - self.adc_zero)
         self.beamcur_chan.setValue(beamcur)
+        self.n_beam_chan.setValue(current2n_no(beamcur))
 
         if self.I.size < 2:
             return
@@ -71,9 +89,12 @@ class DCCTproc:
             self.step_processing = True
             self.step_base = Ib_rpev
         elif self.step_processing and (np.abs(Ib - Ib_rpev) < 0.02):
-            self.step_top = Ib_rpev
+            self.step_top = np.max((Ib, Ib_rpev))
             self.step_processing = False
-            self.curstep_chan.setValue(self.step_top - self.step_base)
+            cur_step = self.step_top - self.step_base
+            self.curstep_chan.setValue(cur_step)
+            self.n_step_chan.setValue(current2n_no(cur_step))
+
 
 class DCCTService(CXService):
     def __init__(self, *args, **kwargs):
