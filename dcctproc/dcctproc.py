@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import pycx4.pycda as cda
 import numpy as np
-import scipy as sp
 from cservice import CXService
 from settings.cx import ctl_server
 
@@ -9,64 +8,47 @@ from settings.cx import ctl_server
 class DCCTproc:
     def __init__(self):
         dname = ctl_server + '.dcct.'
-
         # voltage measurement channel
         self.dcctv_chan = cda.DChan("canhw:21.ring_current", on_update=True)
+        self.dcctv_chan.valueMeasured.connect(self.dcctv_measured)
 
         # input chans
-        self.u2i_chan = cda.DChan(dname + 'u2i', on_update=True)
         self.adczero_chan = cda.DChan(dname + 'ADCzero', on_update=True)
-        self.storage_fitl_chan = cda.IChan(dname + 'storage_fitlength', on_update=True)
-        self.life_fitl_chan = cda.IChan(dname + 'life_fitlength', on_update=True)
+        # self.u2i_chan = cda.DChan(dname + 'u2i', on_update=True)
+        # self.storage_fitl_chan = cda.IChan(dname + 'storage_fitlength', on_update=True)
+        # self.life_fitl_chan = cda.IChan(dname + 'life_fitlength', on_update=True)
+
+        self.adczero_chan.valueChanged.connect(self.adc_zero_update)
+        # self.u2i_chan.valueChanged.connect(self.parUpdate)
+        # self.storage_fitl_chan.valueChanged.connect(self.parUpdate)
+        # self.life_fitl_chan.valueChanged.connect(self.parUpdate)
 
         # output channels
         self.beamcur_chan = cda.DChan(dname + 'beamcurrent')
         self.storage_rate_chan = cda.DChan(dname + 'storagerate')
         self.lifetime_chan = cda.DChan(dname + 'lifetime')
+        self.curstep_chan = cda.DChan(f'{dname}.currentstep')
 
-        self.params = {
-            'u2i':               20.51,
-            'ADCzero':           0.0,
-            'storage_fitlength': 10,
-            'life_fitlength':    10,
-        }
-
-        self.u2i_chan.valueChanged.connect(self.parUpdate)
-        self.adczero_chan.valueChanged.connect(self.parUpdate)
-        self.storage_fitl_chan.valueChanged.connect(self.parUpdate)
-        self.life_fitl_chan.valueChanged.connect(self.parUpdate)
-
-        self.dcctv_chan.valueMeasured.connect(self.dcctv_measured)
+        self.u2i = 20.50  # calibration coefficient
+        self.adc_zero = 0.0
 
         # data owner arrays
-        self.I = np.zeros(10)
-        self.t = np.zeros(10)
+        self.I = np.zeros(20)
+        self.t = np.zeros(20)
         # copy arrays for shifted views
         self.Is = self.I
         self.ts = self.t
 
-    def parUpdate(self, chan):
-        fname = chan.name
-        name = fname.split('.')[-1]
-        self.params[name] = chan.val
-        if name == 'storage_fitlength' or name == 'life_fitlength':
-            self.resize_data()
+        self.step_processing = False
+        self.step_base = 0
+        self.step_top = 0
+        self.prev_beamcur = None
 
-    def resize_data(self):
-        pars = self.params
-        size = max(pars['storage_fitlength'], pars['life_fitlength'])
-        if size == self.I.size:
-            return
-        self.Is = None
-        self.ts = None
-        self.I.resize(size)
-        self.t.resize(size)
-        self.Is = self.I
-        self.ts = self.t
+    def adc_zero_update(self, chan):
+        self.adc_zero = chan.val
 
     def dcctv_measured(self, chan):
-        par = self.params
-        beamcur = par['u2i'] * (chan.val - par['ADCzero'])
+        beamcur = self.u2i * (chan.val - self.adc_zero)
         self.beamcur_chan.setValue(beamcur)
 
         if self.I.size < 2:
@@ -76,15 +58,30 @@ class DCCTproc:
         self.ts = np.roll(self.ts, -1)
         self.ts[-1] = 1e-6 * chan.time
 
-        self.line = sp.polyfit(self.ts, self.Is, 1)
-        self.storagerate = self.line[0]
-        self.storage_rate_chan.setValue(self.storagerate)
+        # self.line = sp.polyfit(self.ts, self.Is, 1)
+        # self.storagerate = self.line[0]
+        # self.storage_rate_chan.setValue(self.storagerate)
         # 2DO: put lifetime calc here
 
+        # experimental step-up detection
+        # first: threshold = 0.1 mA
+        Ib = self.Is[-1]
+        Ib_rpev = self.Is[-2]
+        if ((Ib - Ib_rpev) > 0.02) and (not self.step_processing):
+            self.step_processing = True
+            self.step_base = Ib_rpev
+        elif self.step_processing and (np.abs(Ib - Ib_rpev) < 0.02):
+            self.step_top = Ib_rpev
+            self.step_processing = False
+            self.curstep_chan.setValue(self.step_top - self.step_base)
 
 class DCCTService(CXService):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dcct = None
+
     def main(self):
         self.dcct = DCCTproc()
 
 
-s = DCCTService('dcct_proc')
+s = DCCTService('dcct_proc', not_daemonize=True)
