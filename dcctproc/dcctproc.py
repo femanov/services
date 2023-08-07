@@ -3,20 +3,7 @@ import pycx4.pycda as cda
 import numpy as np
 from cservice import CXService
 from settings.cx import ctl_server
-import scipy.constants as const
-
-# IC damping
-f0 = 10.94e06  # hz
-t0 = 1./f0
-
-
-def current2n_no(current):
-    """
-    converts DR current to particle number (e- or e+)
-    :param current: beam current in mA
-    :return: N - particles number
-    """
-    return (current * t0) / (1000 * const.e)
+from ic_modules.calcs.charge import i2n_dr
 
 
 class DCCTproc:
@@ -67,22 +54,15 @@ class DCCTproc:
     def dcctv_measured(self, chan):
         beamcur = self.u2i * (chan.val - self.adc_zero)
         self.beamcur_chan.setValue(beamcur)
-        self.n_beam_chan.setValue(current2n_no(beamcur))
+        self.n_beam_chan.setValue(i2n_dr(beamcur))
 
-        if self.I.size < 2:
-            return
         self.Is = np.roll(self.Is, -1)
         self.Is[-1] = beamcur
         self.ts = np.roll(self.ts, -1)
         self.ts[-1] = 1e-6 * chan.time
 
-        # self.line = sp.polyfit(self.ts, self.Is, 1)
-        # self.storagerate = self.line[0]
-        # self.storage_rate_chan.setValue(self.storagerate)
-        # 2DO: put lifetime calc here
-
         # experimental step-up detection
-        # first: threshold = 0.1 mA
+        # first: threshold = 0.02 mA (which is much more than noise level)
         Ib = self.Is[-1]
         Ib_rpev = self.Is[-2]
         if ((Ib - Ib_rpev) > 0.02) and (not self.step_processing):
@@ -93,7 +73,7 @@ class DCCTproc:
             self.step_processing = False
             cur_step = self.step_top - self.step_base
             self.curstep_chan.setValue(cur_step)
-            self.n_step_chan.setValue(current2n_no(cur_step))
+            self.n_step_chan.setValue(i2n_dr(cur_step))
 
 
 class DCCTService(CXService):
